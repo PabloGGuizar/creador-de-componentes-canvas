@@ -12,7 +12,6 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Custom styles for a cleaner look */
         .preview-pane {
             background-image: repeating-linear-gradient(45deg, #f9fafb 25%, transparent 25%, transparent 75%, #f9fafb 75%, #f9fafb), repeating-linear-gradient(45deg, #f9fafb 25%, #ffffff 25%, #ffffff 75%, #f9fafb 75%, #f9fafb);
             background-position: 0 0, 10px 10px;
@@ -23,15 +22,15 @@
 <body class="bg-gray-100">
 
     <div class="flex flex-col md:flex-row min-h-screen">
-        <!-- Sidebar for component selection -->
+        <!-- Sidebar -->
         <aside id="sidebar" class="w-full md:w-64 bg-white p-6 shadow-lg overflow-y-auto flex-shrink-0 border-r border-gray-200">
             <h2 class="text-xl font-bold mb-6 text-gray-800">Componentes</h2>
             <ul id="component-list" class="space-y-1">
-                <!-- Component list will be populated by JS -->
+                <!-- Populated by JS -->
             </ul>
         </aside>
 
-        <!-- Main content area -->
+        <!-- Main content -->
         <main class="flex-1 p-4 md:p-8 overflow-y-auto">
             <h1 class="text-3xl font-extrabold mb-6 text-gray-900">Generador de Componentes para Canvas</h1>
             
@@ -42,7 +41,7 @@
                         Personalizar: <span id="customization-title" class="text-blue-600"></span>
                     </h2>
                     <div id="customization-form">
-                        <!-- Customization form will be rendered here by JS -->
+                        <!-- Populated by JS -->
                     </div>
                 </section>
 
@@ -51,7 +50,7 @@
                     <section class="p-6 bg-white rounded-xl shadow-xl border border-gray-200">
                         <h2 class="text-2xl font-bold mb-4 text-gray-800">Previsualización</h2>
                         <div id="preview-area" class="border border-dashed border-gray-300 p-4 rounded-md preview-pane">
-                            <!-- Preview will be rendered here by JS -->
+                            <!-- Populated by JS -->
                         </div>
                     </section>
 
@@ -72,11 +71,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- STATE MANAGEMENT ---
+            // --- STATE & DATA ---
             let selectedComponent = 'Buttons';
-            let showCopyMessage = false;
-
-            // --- DATA & MAPS ---
             const borderThicknessMap = { 'none': '0px', 'thin': '1px', 'medium': '2px', 'thick': '4px' };
             const borderRadiusMap = { 'none': '0rem', 'small': '0.25rem', 'medium': '0.5rem', 'large': '1rem', 'full': '9999px' };
             
@@ -99,7 +95,7 @@
             };
             const componentList = Object.keys(componentProps).sort();
 
-            // --- HTML GENERATOR FUNCTIONS ---
+            // --- HTML GENERATORS (minified for brevity) ---
             const generateAccordionsHtml = (p) => p.accordions.map((accordion, index) => `<details style="display:block;border:none;"><summary style="background-color:${p.bgColor};padding:1rem 1.25rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;color:${p.titleColor};${index<p.accordions.length-1?`border-bottom:${borderThicknessMap[p.borderThickness]} solid ${p.borderColor}`:'border-bottom:none'};list-style:none;"><span>${accordion.title}</span><span style="font-size:1.2rem;margin-left:0.5rem;">&#9660;</span></summary><div style="padding:1rem 1.25rem;background-color:${p.contentBgColor};color:${p.textColor};"><p style="margin:0;">${accordion.content}</p></div></details>`).join('');
             const generateAlertHtml = (p) => `<div style="background-color:${p.bgColor};color:${p.textColor};padding:1rem;border-radius:${borderRadiusMap[p.borderRadius]};border-top:${borderThicknessMap[p.borderThickness]} solid ${p.borderColor};border-right:${borderThicknessMap[p.borderThickness]} solid ${p.borderColor};border-bottom:${borderThicknessMap[p.borderThickness]} solid ${p.borderColor};border-left:${parseInt(borderThicknessMap[p.borderThickness],10)*4}px solid ${p.borderColor};margin-bottom:1rem;font-family:Inter,sans-serif;"><p style="margin:0;font-weight:500;">${p.message}</p></div>`;
             const generateButtonHtml = (p) => { let ps = {'small':'0.5rem 0.75rem','large':'1rem 1.5rem','medium':'0.75rem 1rem'}; return `<a href="${p.link}" target="_blank" style="display:inline-block;padding:${ps[p.size]};background-color:${p.bgColor};color:${p.textColor};text-decoration:none;border:${borderThicknessMap[p.borderThickness]} solid ${p.borderColor};border-radius:${borderRadiusMap[p.borderRadius]};font-weight:600;font-size:${p.size==='small'?'0.875rem':p.size==='large'?'1.125rem':'1rem'};text-align:center;cursor:pointer;">${p.text}</a>`; };
@@ -199,34 +195,39 @@
             }
 
             function bindFormEvents() {
+                // Event listener for live updates (text fields)
                 formContainer.addEventListener('input', (e) => {
-                    if (e.target.matches('input, textarea, select')) {
-                        const prop = e.target.dataset.prop;
-                        const itemType = e.target.dataset.itemType;
+                    const target = e.target;
+                    if (target.matches('textarea, input[type="text"], input[type="number"], input[type="url"]')) {
+                        const prop = target.dataset.prop;
+                        const itemType = target.dataset.itemType;
                         
                         if (itemType) {
-                            const itemIndex = parseInt(e.target.dataset.itemIndex);
-                            const itemProp = e.target.dataset.itemProp;
-                            componentProps[selectedComponent][itemType][itemIndex][itemProp] = e.target.value;
+                            const itemIndex = parseInt(target.dataset.itemIndex);
+                            const itemProp = target.dataset.itemProp;
+                            componentProps[selectedComponent][itemType][itemIndex][itemProp] = target.value;
                         } else if (prop) {
-                            const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                            const value = target.type === 'number' ? parseFloat(target.value) : target.value;
                             componentProps[selectedComponent][prop] = value;
                         }
                         updateAll();
                     }
                 });
 
-                 formContainer.addEventListener('change', (e) => {
-                    if (e.target.matches('input[type="color"], input[type="checkbox"], select')) {
-                        const prop = e.target.dataset.prop;
+                // Event listener for changes that shouldn't re-render instantly (color, checkbox, select)
+                formContainer.addEventListener('change', (e) => {
+                    const target = e.target;
+                    if (target.matches('input[type="color"], input[type="checkbox"], select')) {
+                        const prop = target.dataset.prop;
                         if (prop) {
-                            const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                            const value = target.type === 'checkbox' ? target.checked : target.value;
                             componentProps[selectedComponent][prop] = value;
                             updateAll();
                         }
                     }
-                 });
+                });
 
+                // Event listener for button clicks (add, remove, border styles)
                 formContainer.addEventListener('click', (e) => {
                     const button = e.target.closest('button');
                     if (!button) return;
@@ -236,15 +237,18 @@
                     if (prop && value) {
                         componentProps[selectedComponent][prop] = value;
                     } else if (addItemType) {
-                        const newItemData = { accordions: { title: `Nuevo Acordeón`, content: `Contenido nuevo.` }, buttons: { text: 'Nuevo', link: '#' }, cards: { title: 'Nueva Tarjeta', text: 'Descripción', imageSrc: 'https://placehold.co/400x200/cccccc/000000?text=Nueva', link: '#', linkText: 'Ver' }, items: { text: 'Nuevo', link: '#' }, pages: { text: 'Nuevo', link: '#' }};
+                        const newItemData = { accordions: { title: `Nuevo`, content: `Contenido.` }, buttons: { text: 'Nuevo', link: '#' }, cards: { title: 'Nueva Tarjeta', text: 'Desc.', imageSrc: 'https://placehold.co/400x200/cccccc/000000?text=Nueva', link: '#', linkText: 'Ver' }, items: { text: 'Nuevo', link: '#' }, pages: { text: 'Nuevo', link: '#' }};
                         componentProps[selectedComponent][addItemType].push(newItemData[addItemType]);
                     } else if (removeItemType) {
                         componentProps[selectedComponent][removeItemType].splice(parseInt(removeItemIndex), 1);
+                    } else {
+                        return; // Not a button we care about
                     }
                     updateAll();
                 });
             }
 
+            // --- INITIALIZATION ---
             const componentListContainer = document.getElementById('component-list');
             componentListContainer.innerHTML = componentList.map(name => `<li><button data-component="${name}" class="w-full text-left font-medium py-2 px-3 rounded-md transition-all duration-150 text-sm">${name.replace(/([A-Z])/g, ' $1').trim()}</button></li>`).join('');
             componentListContainer.addEventListener('click', (e) => {
@@ -263,9 +267,9 @@
                 });
             });
 
-            // Initial render
+            // Initial Render
             selectComponent(selectedComponent);
         });
     </script>
-    </body>
+</body>
 </html>
