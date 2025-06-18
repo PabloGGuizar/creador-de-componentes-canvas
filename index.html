@@ -136,4 +136,136 @@
             }
 
             function selectComponent(componentName) {
-                sele
+                selectedComponent = componentName;
+                document.getElementById('customization-title').textContent = componentName.replace(/([A-Z])/g, ' $1').trim();
+                
+                document.querySelectorAll('#component-list button').forEach(btn => {
+                    btn.className = btn.dataset.component === componentName 
+                        ? 'w-full text-left font-medium py-2 px-3 rounded-md transition-all duration-150 text-sm bg-blue-600 text-white shadow-sm'
+                        : 'w-full text-left font-medium py-2 px-3 rounded-md transition-all duration-150 text-sm text-gray-600 hover:bg-gray-100';
+                });
+
+                updateAll();
+            }
+            
+            function renderCustomizationForm() {
+                const props = componentProps[selectedComponent];
+                let formHtml = '';
+
+                for (const key in props) {
+                    const value = props[key];
+                    const label = key.replace(/([A-Z])/g, ' $1').trim();
+
+                    if (key === 'borderThickness' || key === 'borderRadius' || Array.isArray(value)) continue;
+
+                    if (typeof value === 'string' && value.startsWith('#')) {
+                        formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-1 capitalize">${label}:</label><div class="flex items-center gap-2"><input type="color" data-prop="${key}" class="p-0 border-none w-10 h-10 rounded-md cursor-pointer" value="${value}"><span class="text-gray-600 font-mono text-sm">${value}</span></div></div>`;
+                    } else if (key === 'message' || key === 'text' || key === 'content' || key === 'subtitle') {
+                        formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-1 capitalize">${label}:</label><textarea data-prop="${key}" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 h-20">${value}</textarea></div>`;
+                    } else if (key === 'size' || key === 'alignment') {
+                        const options = key === 'size' ? ['small', 'medium', 'large'] : ['left', 'center', 'right'];
+                        formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-1 capitalize">${label}:</label><select data-prop="${key}" class="shadow-sm border rounded w-full py-2 px-3">${options.map(o => `<option value="${o}" ${value === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
+                    } else if (typeof value === 'boolean') {
+                        formHtml += `<div class="mb-4"><label class="inline-flex items-center"><input type="checkbox" data-prop="${key}" ${value ? 'checked' : ''} /><span class="ml-2">${label}</span></label></div>`;
+                    } else {
+                        formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-1 capitalize">${label}:</label><input type="${typeof value === 'number' ? 'number' : 'text'}" data-prop="${key}" value="${value}" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700" /></div>`;
+                    }
+                }
+                
+                if ('borderThickness' in props) {
+                   formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-2">Grosor del Borde</label><div class="flex flex-wrap gap-2">${Object.keys(borderThicknessMap).map(o=>`<button type="button" data-prop="borderThickness" data-value="${o}" class="w-16 h-16 flex items-center justify-center rounded-lg border-2 transition-all ${props.borderThickness===o?'border-blue-500 ring-2 ring-blue-500 ring-offset-2':'border-gray-300 hover:border-gray-400'}"><div class="w-10 h-10 bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-[10px]" style="border:${borderThicknessMap[o]} solid #4b5563">${borderThicknessMap[o]}</div></button>`).join('')}</div></div>`;
+                }
+                if ('borderRadius' in props) {
+                    formHtml += `<div class="mb-4"><label class="block text-gray-700 text-sm font-bold mb-2">Redondeado del Borde</label><div class="flex flex-wrap gap-2">${Object.keys(borderRadiusMap).map(o=>`<button type="button" data-prop="borderRadius" data-value="${o}" class="w-16 h-16 flex items-center justify-center rounded-lg border-2 transition-all ${props.borderRadius===o?'border-blue-500 ring-2 ring-blue-500 ring-offset-2':'border-gray-300 hover:border-gray-400'}"><div class="w-10 h-10 bg-gray-200 border-2 border-gray-600 flex items-center justify-center text-gray-600 font-bold text-xs" style="border-radius:${borderRadiusMap[o]}">${o[0].toUpperCase()}</div></button>`).join('')}</div></div>`;
+                }
+                
+                const listProps = ['accordions', 'buttons', 'cards', 'items', 'pages'];
+                const itemType = listProps.find(p => p in props);
+                if (itemType) {
+                    const fields = { accordions: { title: 'text', content: 'text' }, buttons: { text: 'text', link: 'text' }, cards: { title: 'text', text: 'text', imageSrc: 'text', link: 'text', linkText: 'text' }, items: { text: 'text', link: 'text' }, pages: { text: 'text', link: 'text' }};
+                    formHtml += `<div><h4 class="text-lg font-semibold mb-2 mt-4 capitalize">${itemType}</h4>`;
+                    props[itemType].forEach((item, index) => {
+                        formHtml += `<div class="space-y-2 mb-3 p-3 border rounded bg-gray-50/50 relative"><h5 class="font-bold text-gray-600 capitalize">${itemType.slice(0, -1)} ${index + 1}</h5>`;
+                        for (const field in fields[itemType]) {
+                           formHtml += `<div><label class="block text-gray-600 text-xs font-bold mb-1 capitalize">${field}</label><input type="${fields[itemType][field]}" data-item-type="${itemType}" data-item-index="${index}" data-item-prop="${field}" value="${item[field]}" class="shadow-sm border rounded w-full py-1 px-2 text-sm" /></div>`;
+                        }
+                        formHtml += `<button data-remove-item-type="${itemType}" data-remove-item-index="${index}" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white font-bold p-0 w-5 h-5 rounded-full text-xs flex items-center justify-center">&times;</button></div>`;
+                    });
+                    formHtml += `<button data-add-item-type="${itemType}" class="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm">Agregar</button></div>`;
+                }
+
+                formContainer.innerHTML = formHtml;
+                bindFormEvents();
+            }
+
+            function bindFormEvents() {
+                formContainer.addEventListener('input', (e) => {
+                    if (e.target.matches('input, textarea, select')) {
+                        const prop = e.target.dataset.prop;
+                        const itemType = e.target.dataset.itemType;
+                        
+                        if (itemType) {
+                            const itemIndex = parseInt(e.target.dataset.itemIndex);
+                            const itemProp = e.target.dataset.itemProp;
+                            componentProps[selectedComponent][itemType][itemIndex][itemProp] = e.target.value;
+                        } else if (prop) {
+                            const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                            componentProps[selectedComponent][prop] = value;
+                        }
+                        updateAll();
+                    }
+                });
+
+                 formContainer.addEventListener('change', (e) => {
+                    if (e.target.matches('input[type="color"], input[type="checkbox"], select')) {
+                        const prop = e.target.dataset.prop;
+                        if (prop) {
+                            const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                            componentProps[selectedComponent][prop] = value;
+                            updateAll();
+                        }
+                    }
+                 });
+
+                formContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
+
+                    const { prop, value, addItemType, removeItemType, removeItemIndex } = button.dataset;
+
+                    if (prop && value) {
+                        componentProps[selectedComponent][prop] = value;
+                    } else if (addItemType) {
+                        const newItemData = { accordions: { title: `Nuevo Acordeón`, content: `Contenido nuevo.` }, buttons: { text: 'Nuevo', link: '#' }, cards: { title: 'Nueva Tarjeta', text: 'Descripción', imageSrc: 'https://placehold.co/400x200/cccccc/000000?text=Nueva', link: '#', linkText: 'Ver' }, items: { text: 'Nuevo', link: '#' }, pages: { text: 'Nuevo', link: '#' }};
+                        componentProps[selectedComponent][addItemType].push(newItemData[addItemType]);
+                    } else if (removeItemType) {
+                        componentProps[selectedComponent][removeItemType].splice(parseInt(removeItemIndex), 1);
+                    }
+                    updateAll();
+                });
+            }
+
+            const componentListContainer = document.getElementById('component-list');
+            componentListContainer.innerHTML = componentList.map(name => `<li><button data-component="${name}" class="w-full text-left font-medium py-2 px-3 rounded-md transition-all duration-150 text-sm">${name.replace(/([A-Z])/g, ' $1').trim()}</button></li>`).join('');
+            componentListContainer.addEventListener('click', (e) => {
+                if(e.target.matches('button')) {
+                    selectComponent(e.target.dataset.component);
+                }
+            });
+
+            document.getElementById('copy-button').addEventListener('click', () => {
+                const code = document.getElementById('code-output').textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    const btn = document.getElementById('copy-button');
+                    const originalText = btn.textContent;
+                    btn.textContent = '¡Copiado!';
+                    setTimeout(() => { btn.textContent = originalText; }, 2000);
+                });
+            });
+
+            // Initial render
+            selectComponent(selectedComponent);
+        });
+    </script>
+    </body>
+</html>
